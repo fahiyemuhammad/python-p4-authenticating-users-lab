@@ -18,6 +18,39 @@ db.init_app(app)
 
 api = Api(app)
 
+class Login(Resource):
+    def post(self):
+        data = request.get_json()
+        username = data.get('username')
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return {'message': '401: Invalid username'}, 401
+
+        session['user_id'] = user.id
+        return user.to_dict(), 200
+
+
+class Logout(Resource):
+    def delete(self):
+        session.clear()
+        return {"message": "204: No Content"}, 204
+
+
+class CheckSession(Resource):
+    def get(self):
+        user_id = session.get('user_id')
+        user = User.query.filter_by(id=user_id).first()
+
+        if user:
+            return user.to_dict(), 200
+        return {}, 401
+    
+@app.route('/clear')
+def clear_session():
+    session.clear()
+    return {}, 204   
+
 class ClearSession(Resource):
 
     def delete(self):
@@ -51,7 +84,9 @@ class ShowArticle(Resource):
 api.add_resource(ClearSession, '/clear')
 api.add_resource(IndexArticle, '/articles')
 api.add_resource(ShowArticle, '/articles/<int:id>')
-
+api.add_resource(Login, '/login')
+api.add_resource(Logout, '/logout')
+api.add_resource(CheckSession, '/check_session')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
